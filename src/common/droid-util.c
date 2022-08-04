@@ -252,9 +252,12 @@ static void update_mapping(pa_droid_profile_set *profile_set,
     /*                                    source        sink
      * For output routes    PulseAudio -> mixPort    -> devicePort
      *     input routes                   devicePort -> mixPort -> PulseAudio
+     *
      */
     if (source->port_type == DM_CONFIG_TYPE_MIX_PORT &&
         sink->port_type == DM_CONFIG_TYPE_DEVICE_PORT) {
+
+        pa_log_debug("Routing mixPort -> devicePort (%s -> %s)", source->name, sink->name);
 
         mappings = profile->output_mappings;
 
@@ -266,12 +269,27 @@ static void update_mapping(pa_droid_profile_set *profile_set,
     } else if (source->port_type == DM_CONFIG_TYPE_DEVICE_PORT &&
                sink->port_type == DM_CONFIG_TYPE_MIX_PORT) {
 
+        pa_log_debug("Routing devicePort -> mixPort (%s -> %s)", source->name, sink->name);
+
         mappings = profile->input_mappings;
 
         if ((droid_mapping = mapping_by_name(mappings, sink->name)))
             put = false;
 
         droid_mapping = droid_mapping_update(droid_mapping, profile_set, module, sink, source);
+
+    // Mediatek devices do devicePort -> devicePort
+    } else if (source->port_type == DM_CONFIG_TYPE_DEVICE_PORT &&
+        sink->port_type == DM_CONFIG_TYPE_DEVICE_PORT) {
+
+        pa_log_debug("Routing devicePort -> devicePort (%s -> %s)", source->name, sink->name);
+
+        mappings = profile->output_mappings;
+
+        if ((droid_mapping = mapping_by_name(mappings, source->name)))
+            put = false;
+
+        droid_mapping = droid_mapping_update(droid_mapping, profile_set, module, source, sink);
 
     } else {
         pa_log("Internal data structures are confused.");
